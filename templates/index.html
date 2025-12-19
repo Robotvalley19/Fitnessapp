@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>{{ profile.name }} - Fitnessprofil</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+<style>
+.exercise { display: none; }
+.exercise.active { display: block; }
+.profile-header { display: flex; justify-content: space-between; align-items: center; }
+.jogging-inputs { margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="profile-header">
+        <h1>{{ profile.name }} - Fitnessprofil</h1>
+        <form method="POST" style="margin:0;">
+            <button type="submit" name="delete" class="delete-btn">Profil löschen</button>
+        </form>
+    </div>
+
+    <h2>Gewicht & BMI</h2>
+    <form method="POST">
+        <label>Gewicht (kg):</label>
+        <input type="number" step="0.1" name="weight" required value="{{ profile.weight }}">
+        
+        {% if profile.training_focus == "Joggen" %}
+        <div class="jogging-inputs">
+            <label>Gelaufene Strecke (km):</label>
+            <input type="number" step="0.01" name="distance" value="{{ profile.last_distance or 0 }}">
+            <label>Gelaufene Zeit (Minuten):</label>
+            <input type="number" step="0.1" name="time" value="{{ profile.last_time or 0 }}">
+        </div>
+        {% endif %}
+        
+        <button type="submit" name="save_weight">Eintragen</button>
+    </form>
+    <p><strong>Aktueller BMI:</strong> {{ current_bmi }} – <span class="bmi-category">{{ current_category }}</span></p>
+
+    {% if history %}
+    <h2>Gewichts-, BMI- & Kalorien-Verlauf</h2>
+    <canvas id="weightChart" width="600" height="300"></canvas>
+    <div style="text-align:center; margin-top:10px;">
+        <button onclick="resetZoom()">Zoom zurücksetzen</button>
+    </div>
+    <script>
+    const ctx = document.getElementById('weightChart').getContext('2d');
+
+    const labels = {{ history|map(attribute='date')|list|tojson }};
+    const weights = {{ history|map(attribute='weight')|list|tojson }};
+    const bmiList = {{ bmi_list|tojson }};
+    const focusList = {{ history|map(attribute='focus')|list|tojson }};
+    const distanceList = {{ history|map(attribute='distance')|list|tojson }};
+    const timeList = {{ history|map(attribute='time')|list|tojson }};
+    const caloriesList = {{ history|map(attribute='calories')|list|tojson }};
+
+    const focusColors = {
+        "Ganzkörper": "green",
+        "Arme": "blue",
+        "Oberkörper": "orange",
+        "Bauch/Rücken": "purple",
+        "Beine/Po": "red",
+        "Joggen": "cyan",
+        "Trampolin": "pink",
+        "": "gray"
+    };
+    const pointColors = focusList.map(f => focusColors[f] || "gray");
+
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                { 
+                    label: 'Gewicht (kg)', 
+                    data: weights,
+                    borderColor: 'blue', 
+                    fill: false, 
+                    tension: 0.1,
+                    pointBackgroundColor: pointColors,
+                    pointRadius: 6,
+                    datalabels: {
+                        align: 'top',
+                        color: 'black',
+                        font: { size: 12 },
+                        formatter: function(value, context) {
+                            const idx = context.dataIndex;
+                            if (focusList[idx] === "Joggen") {
+                                let extra = "";
+                                if(distanceList[idx]) extra += distanceList[idx] + " km";
+                                if(timeList[idx]) extra += ", " + timeList[idx] + " min";
+                                return extra;
+                            }
+                            return null;
+                        }
+                    }
+                },
+                { 
+                    label: 'BMI', 
+                    data: bmiList, 
+                    borderColor: 'red', 
+                    fill: false, 
+                    tension: 0.1
+                },
+                { 
+                    label: 'Kalorien', 
+                    data: caloriesList,
+                    borderColor: 'orange',
+                    fill: false,
+                    tension: 0.1,
+                    pointBackgroundColor: pointColors,
+                    pointRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+                datalabels: { display: true },
+                tooltip: {
+                    callbacks: {
+                        afterBody: function(tooltipItems) {
+                            const idx = tooltipItems[0].dataIndex;
+                            let extra = "";
+                            if (focusList[idx] === "Joggen") {
+                                if(distanceList[idx]) extra += "\nStrecke: " + distanceList[idx] + " km";
+                                if(timeList[idx]) extra += "\nZeit: " + timeList[idx] + " min";
+                            }
+                            extra += "\nKalorien: " + caloriesList[idx] + " kcal";
+                            return "Trainingsfokus: " + focusList[idx] + extra;
+                        }
+                    }
+                },
+                zoom: {
+                    pan: { enabled: true, mode: 'x' },
+                    zoom: {
+                        wheel: { enabled: true },
+                        pinch: { enabled: true },
+                        mode: 'x'
+                    }
+                }
+            },
+            scales: { y: { beginAtZero: false } }
+        },
+        plugins: [ChartDataLabels]
+    });
+
+    function resetZoom() {
+        chart.resetZoom();
+    }
+    </script>
+    {% endif %}
+
+    <h2>Profildaten</h2>
+    <table>
+        <tr><th>Alter</th><td>{{ profile.age }}</td></tr>
+        <tr><th>Geschlecht</th><td>{{ profile.gender }}</td></tr>
+        <tr><th>Größe</th><td>{{ profile.height }} cm</td></tr>
+        <tr><th>Startgewicht</th><td>{{ profile.start_weight }} kg</td></tr>
+        <tr><th>Zielgewicht</th><td>{{ profile.goal_weight }} kg</td></tr>
+        <tr><th>Trainingstage</th><td>{{ profile.training_days }}</td></tr>
+        <tr>
+            <th>Trainingsfokus</th>
+            <td>
+                <form method="POST">
+                    <select name="training_focus">
+                        {% for focus in EXERCISES.keys() %}
+                        <option value="{{ focus }}" {% if focus == profile.training_focus %}selected{% endif %}>{{ focus }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" name="update_focus">Ändern</button>
+                </form>
+            </td>
+        </tr>
+    </table>
+
+    {% if profile.training_focus != "Joggen" %}
+    <h2>Übungen für {{ profile.training_focus }}</h2>
+    {% for ex in exercises %}
+    <div class="exercise {% if loop.first %}active{% endif %}">
+        <h3>{{ ex.name }}</h3>
+        <p>{{ ex.description|replace('\n','<br>')|safe }}</p>
+    </div>
+    {% endfor %}
+    <div style="text-align:center; margin-bottom:20px;">
+        <button id="nextExercise">Weiter</button>
+    </div>
+    {% endif %}
+
+    <p style="text-align:center; margin-top:10px;">
+        <a href="{{ url_for('index') }}" class="home-btn">Zur Hauptseite</a>
+    </p>
+</div>
+
+<script>
+let currentIndex = 0;
+const exercises = document.querySelectorAll('.exercise');
+function showExercise(index) {
+    exercises.forEach((ex,i) => ex.classList.toggle('active', i === index));
+}
+if (exercises.length > 0) {
+    document.getElementById('nextExercise').addEventListener('click', () => {
+        currentIndex = (currentIndex + 1) % exercises.length;
+        showExercise(currentIndex);
+    });
+}
+</script>
+</body>
+</html>

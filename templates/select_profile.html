@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Fitness App – Profil auswählen</title>
+<style>
+/* --- Lokale Fonts einbinden --- */
+@font-face {
+    font-family: 'Roboto Mono';
+    src: url('static/fonts/RobotoMono-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Roboto Mono';
+    src: url('static/fonts/RobotoMono-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+body {
+    margin: 0;
+    font-family: 'Roboto Mono', monospace;
+    background: #0d0d0d;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* Animierter Hightech-Hintergrund */
+canvas#bgCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+}
+
+.container {
+    text-align: center;
+    max-width: 1000px;
+    width: 90%;
+    z-index: 1;
+    position: relative;
+}
+
+h1 {
+    font-size: 3em;
+    color: #00d1b2;
+    margin-bottom: 40px;
+    border-bottom: 2px solid #00d1b2;
+    display: inline-block;
+    padding-bottom: 10px;
+}
+
+.profiles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+}
+
+.profile-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid #00d1b2;
+    border-radius: 15px;
+    padding: 20px 40px;
+    width: 220px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+}
+
+.profile-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 15px rgba(0, 209, 178, 0.5);
+}
+
+.profile-card h2 {
+    margin: 0;
+    font-size: 1.5em;
+    color: #00d1b2;
+}
+
+.profile-card p {
+    margin-top: 5px;
+    font-size: 0.9em;
+    color: #ccc;
+}
+
+.new-profile-btn {
+    margin-top: 50px;
+    padding: 12px 28px;
+    font-size: 1.1em;
+    background-color: #00d1b2;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #1a1a1a;
+    font-weight: bold;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.new-profile-btn:hover {
+    background-color: #00b894;
+    transform: translateY(-3px);
+}
+
+</style>
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+
+<div class="container">
+    <h1>Fitness App</h1>
+    <div class="profiles">
+        {% for profile in profiles %}
+        <form method="POST" action="{{ url_for('select_profile') }}">
+            <input type="hidden" name="name" value="{{ profile.name }}">
+            <button type="submit" class="profile-card">
+                <h2>{{ profile.name }}</h2>
+                <p>{{ profile.age }} Jahre | {{ profile.gender }}</p>
+            </button>
+        </form>
+        {% endfor %}
+    </div>
+
+    <form method="GET" action="{{ url_for('new_profile') }}">
+        <button type="submit" class="new-profile-btn">Neues Profil erstellen</button>
+    </form>
+</div>
+
+<script>
+// ---------------- Animierter Hightech-Hintergrund ----------------
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const lines = [];
+for (let i=0;i<100;i++){
+    lines.push({
+        x: Math.random()*canvas.width,
+        y: Math.random()*canvas.height,
+        length: 50 + Math.random()*100,
+        speed: 0.5 + Math.random(),
+        angle: Math.random()*Math.PI*2
+    });
+}
+
+function animate(){
+    ctx.fillStyle = '#0d0d0d';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.strokeStyle = 'rgba(0,209,178,0.4)';
+    ctx.lineWidth = 1;
+
+    for (let l of lines){
+        ctx.beginPath();
+        ctx.moveTo(l.x, l.y);
+        ctx.lineTo(l.x + Math.cos(l.angle)*l.length, l.y + Math.sin(l.angle)*l.length);
+        ctx.stroke();
+
+        l.x += Math.cos(l.angle)*l.speed;
+        l.y += Math.sin(l.angle)*l.speed;
+
+        if (l.x>canvas.width || l.x<0 || l.y>canvas.height || l.y<0){
+            l.x = Math.random()*canvas.width;
+            l.y = Math.random()*canvas.height;
+        }
+    }
+    requestAnimationFrame(animate);
+}
+
+animate();
+
+window.addEventListener('resize', ()=>{
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+});
+</script>
+</body>
+</html>
