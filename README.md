@@ -1,4 +1,4 @@
-# Fitnessapp
+# Fitness-App
 
 Eine **lokale Fitness-App** zur Verwaltung von Fitnessprofilen, Gewicht, BMI, Trainingsfokus und Übungen.
 Die App ist vollständig lokal und **browserbasiert**, speichert Daten in CSV-Dateien und benötigt keine externe Datenbank.
