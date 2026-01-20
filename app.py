@@ -294,9 +294,6 @@ def profile(name):
             new_focus = request.form['training_focus']
             profile['training_focus'] = new_focus
             update_profile_focus(name, new_focus)
-            add_weight_entry(name, float(profile['weight']),
-                             datetime.now().strftime('%Y-%m-%d'),
-                             new_focus)
 
         # ---------------- Gewicht speichern ----------------
         if 'save_weight' in request.form:
