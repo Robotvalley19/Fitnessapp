@@ -36,14 +36,14 @@ input, select, button {
 
 <div class="profile-header">
     <h1>{{ profile.name }} - Fitnessprofil</h1>
-    <form method="POST" style="margin:0;">
+    <form method="POST" style="margin:0;" onsubmit="return confirm('Wirklich Fitnessprofil löschen?');">
         <button type="submit" name="delete" class="delete-btn">Fitnessprofil löschen</button>
     </form>
 </div>
 
 <!-- ================= Gewicht ================= -->
 <h2>Fitnessfortschritt</h2>
-<form method="POST">
+<form method="POST" onsubmit="return confirm('Wirklich eintragen?');">
 
     <div class="input-group">
         <label>Aktuelles Gewicht (kg):</label>
